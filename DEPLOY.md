@@ -1,14 +1,42 @@
 # 🚀 Running Voice Clone Studio online
 
-GitHub stores the code; it doesn't run it. Below are two ready-to-use ways to run
-the app online. Pick whichever fits — the files for both are already in this repo.
+GitHub stores the code; it doesn't run it. Below are ready-to-use ways to run the
+app online. The files for all of them are already in this repo.
 
-| | 🤗 Hugging Face Spaces | ▶️ Google Colab |
-|---|---|---|
-| Cost | Free (CPU) | Free |
-| Speed | Slow (~min/clip on CPU) | **Fast** (free GPU) |
-| Stays online? | ✅ Always-on, public URL | ❌ Only while the notebook runs |
-| Best for | A permanent public demo | Quick, fast personal use |
+| | ⭐ HF Space (ZeroGPU) | 🤗 HF Space (Docker, CPU) | ▶️ Google Colab |
+|---|---|---|---|
+| Cost | Free | Free | Free |
+| Speed | **Fast** (on-demand GPU) | Slow (~min/clip) | Fast (GPU) |
+| Stays online? | ✅ Always-on | ✅ Always-on | ❌ Only while notebook runs |
+| Manual start each time? | ❌ No | ❌ No | ✅ Yes |
+| UI | Gradio | Your custom Flask UI | Your custom Flask UI |
+| Files | `huggingface_space/` | `Dockerfile` + `deploy/huggingface/` | `notebooks/` |
+
+> **Recommended: ZeroGPU.** Always-on, free GPU, nothing to launch. The only
+> trade-off is it uses a Gradio UI instead of the custom Flask one. This is the
+> closest thing to "free GPU hosting with nothing to start."
+>
+> **Why there's no automatic Colab option:** Google Colab is an interactive
+> notebook — it can't stay running on its own and hands out a new URL each run, so
+> it always requires manually starting it. ZeroGPU replaces that need.
+
+---
+
+## Option ⭐ — Hugging Face Space with ZeroGPU (free GPU, always-on)
+
+1. Create a free account at **https://huggingface.co**.
+2. **New ▸ Space** → **SDK: Gradio**, name it, Create.
+3. Upload the **contents of the `huggingface_space/` folder** to the Space root
+   (`app.py`, `requirements.txt`, `README.md`). Easiest: clone the Space repo,
+   copy those 3 files in, commit & push. (The Space's `README.md` must be the one
+   from `huggingface_space/` — it has the Gradio + config header.)
+4. **Settings ▸ Hardware ▸ select `ZeroGPU`** (free; may require a quick eligibility
+   opt-in / PRO for higher limits, but the free tier works).
+5. The Space builds and starts. First generation downloads the model (~1 min),
+   then runs on a GPU. Share the Space URL — done, nothing to launch.
+
+> ⚠️ Free-Space storage is ephemeral: saved profiles reset on restart. To keep them,
+> add Persistent Storage in Settings or back them with a HF Dataset.
 
 ---
 

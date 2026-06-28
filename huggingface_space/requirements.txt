@@ -1,0 +1,5 @@
+gradio>=4.44.0
+spaces
+chatterbox-tts>=0.1.7
+numpy<2
+soundfile
