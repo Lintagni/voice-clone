@@ -1,3 +1,14 @@
+---
+title: Voice Clone Studio
+emoji: 🎙️
+colorFrom: purple
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+license: mit
+---
+
 # 🎙️ Voice Clone Studio
 
 A local, web-based AI **voice cloning** tool. Upload a short reference clip,
