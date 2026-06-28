@@ -1,0 +1,12 @@
+.git
+.gitignore
+__pycache__/
+*.pyc
+venv/
+.venv/
+outputs/
+uploads/
+profiles/
+.cache/
+notebooks/
+*.log

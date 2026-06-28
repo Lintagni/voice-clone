@@ -36,10 +36,23 @@ voice clone/
 ├── README.md
 ├── templates/
 │   └── index.html         # Single-page frontend
+├── Dockerfile             # For Hugging Face Spaces / any container host
+├── DEPLOY.md              # How to run online (HF Spaces + Google Colab)
+├── deploy/huggingface/    # Hugging Face Space config (README with frontmatter)
+├── notebooks/             # Google Colab notebook (free GPU + public URL)
 ├── outputs/               # Generated WAV files (auto-created)
 ├── profiles/              # Saved voice profiles (auto-created, persistent)
 └── uploads/               # Temp reference uploads (auto-created, auto-cleaned)
 ```
+
+---
+
+## 🚀 Run it online
+
+GitHub only stores the code. To run it on the web, see **[DEPLOY.md](DEPLOY.md)** —
+it covers two ready-to-use options:
+- **🤗 Hugging Face Spaces** — free, always-on (slow on CPU; GPU optional)
+- **▶️ Google Colab** — free GPU, fast, but only while the notebook runs
 
 ---
 
