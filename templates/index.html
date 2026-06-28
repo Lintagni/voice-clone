@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Voice Clone Studio</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { theme: { extend: { colors: { brand: { 500: "#8b5cf6", 600: "#7c3aed", 700: "#6d28d9" } } } } };
+  </script>
+  <style>
+    body { background: radial-gradient(1200px 600px at 20% -10%, #1e1b4b 0%, #0b0b12 45%, #07070c 100%); }
+    .glass { background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.07); backdrop-filter: blur(8px); }
+    .spinner { border: 3px solid rgba(255,255,255,0.15); border-top-color: #a78bfa; border-radius: 9999px; width: 18px; height: 18px; animation: spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-thumb { background: #3f3f56; border-radius: 8px; }
+    select option { background: #15151f; }
+    audio { height: 38px; }
+  </style>
+</head>
+<body class="min-h-screen text-slate-200 antialiased">
+  <div class="max-w-6xl mx-auto px-4 py-8">
+
+    <header class="flex items-center justify-between mb-6">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-fuchsia-500 grid place-items-center text-xl">🎙️</div>
+        <div>
+          <h1 class="text-xl font-semibold tracking-tight">Voice Clone Studio</h1>
+          <p class="text-xs text-slate-400">Chatterbox TTS · runs locally</p>
+        </div>
+      </div>
+      <div id="status" class="flex items-center gap-2 text-xs px-3 py-1.5 rounded-full glass text-slate-300">
+        <span id="statusDot" class="w-2 h-2 rounded-full bg-emerald-400"></span><span id="statusText">Ready</span>
+      </div>
+    </header>
+
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-6">
+      <button id="tabCreateBtn" class="tabBtn flex-1 py-2.5 rounded-xl text-sm font-medium border border-slate-700 transition">① Create Voice Profile</button>
+      <button id="tabGenBtn" class="tabBtn flex-1 py-2.5 rounded-xl text-sm font-medium border border-slate-700 transition">② Generate Audio</button>
+    </div>
+
+    <!-- ===================== SECTION 1: CREATE PROFILE ===================== -->
+    <div id="tabCreate" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <section class="glass rounded-2xl p-6">
+        <h2 class="text-sm font-semibold text-slate-300 mb-4 uppercase tracking-wider">Create a voice profile</h2>
+
+        <label class="text-xs text-slate-400">Profile name</label>
+        <input id="profName" type="text" placeholder="e.g. gayan"
+          class="w-full mt-1 mb-4 bg-black/30 border border-slate-700 focus:border-brand-500 rounded-lg px-3 py-2 text-sm outline-none" />
+
+        <label class="text-xs text-slate-400">Reference audio</label>
+        <label id="dropZone" for="profAudio"
+          class="mt-1 flex flex-col items-center justify-center gap-1 border-2 border-dashed border-slate-600 hover:border-brand-500 rounded-xl py-6 px-4 cursor-pointer transition">
+          <div class="text-2xl">📂</div>
+          <div class="text-sm text-slate-300"><span class="text-brand-500 font-medium">Click to upload</span> or drag &amp; drop</div>
+          <div class="text-xs text-slate-500">WAV / MP3 · 10–60 s of clear, single-speaker speech</div>
+          <input id="profAudio" type="file" accept=".wav,.mp3,.flac,.ogg,.m4a,audio/*" class="hidden" />
+        </label>
+        <div id="profFileInfo" class="hidden mt-2 text-xs text-slate-300 flex items-center gap-2"><span>🔊</span><span id="profFileName" class="truncate"></span></div>
+        <audio id="profPreview" class="hidden w-full mt-2" controls></audio>
+
+        <label class="text-xs text-slate-400 mt-4 block">Transcript / notes <span class="text-slate-600">(optional)</span></label>
+        <textarea id="profTranscript" rows="3" placeholder="What is said in the clip, or any notes. Optional — Chatterbox clones from the audio alone."
+          class="w-full mt-1 bg-black/30 border border-slate-700 focus:border-brand-500 rounded-lg p-3 text-sm outline-none resize-y placeholder:text-slate-600"></textarea>
+
+        <button id="saveProfileBtn"
+          class="w-full mt-4 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-medium py-3 rounded-xl transition">💾 Save voice profile</button>
+        <div id="createMsg" class="hidden mt-3 text-sm rounded-lg px-3 py-2"></div>
+      </section>
+
+      <section class="glass rounded-2xl p-6">
+        <h2 class="text-sm font-semibold text-slate-300 mb-4 uppercase tracking-wider">Your voice profiles</h2>
+        <ul id="profileCards" class="space-y-3 text-sm"><li class="text-slate-500">No profiles yet — create one on the left.</li></ul>
+      </section>
+    </div>
+
+    <!-- ===================== SECTION 2: GENERATE ===================== -->
+    <div id="tabGen" class="hidden grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <section class="glass rounded-2xl p-6">
+        <h2 class="text-sm font-semibold text-slate-300 mb-3 uppercase tracking-wider">Generate audio</h2>
+
+        <label class="text-xs text-slate-400">Choose voice profile</label>
+        <select id="genProfile" class="w-full mt-1 mb-4 bg-black/30 border border-slate-700 focus:border-brand-500 rounded-lg px-3 py-2 text-sm outline-none">
+          <option value="">— Select a saved profile —</option>
+        </select>
+
+        <label class="text-xs text-slate-400">Script</label>
+        <textarea id="text" rows="8" maxlength="{{ max_chars }}"
+          placeholder="Paste or type your script. Long scripts are split into sentences and stitched into one track…"
+          class="w-full mt-1 bg-black/30 border border-slate-700 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 rounded-xl p-3 text-sm outline-none resize-y placeholder:text-slate-600"></textarea>
+        <div class="flex justify-between items-center mt-2 text-xs text-slate-500">
+          <span>Long scripts take longer on CPU (~2–4 min/sentence).</span>
+          <span><span id="charCount">0</span> / {{ max_chars }}</span>
+        </div>
+
+        <details class="mt-5 group">
+          <summary class="cursor-pointer text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2 select-none">
+            <span>⚙️ Voice tuning</span><span class="text-xs text-slate-500 normal-case font-normal">(lower = cleaner)</span>
+          </summary>
+          <div class="mt-4 space-y-4 bg-black/20 border border-slate-800 rounded-xl p-4">
+            <div>
+              <div class="text-xs text-slate-400 mb-2">Quick presets</div>
+              <div class="grid grid-cols-3 gap-2">
+                <button type="button" data-preset="A" class="presetBtn flex flex-col items-center py-2 rounded-lg border border-slate-700 hover:border-brand-500 hover:bg-brand-500/10 transition text-xs"><span class="font-semibold text-slate-200">A · Default</span><span class="text-[10px] text-slate-500">punchy</span></button>
+                <button type="button" data-preset="B" class="presetBtn flex flex-col items-center py-2 rounded-lg border border-slate-700 hover:border-brand-500 hover:bg-brand-500/10 transition text-xs"><span class="font-semibold text-slate-200">B · Cleaner</span><span class="text-[10px] text-slate-500">balanced</span></button>
+                <button type="button" data-preset="C" class="presetBtn flex flex-col items-center py-2 rounded-lg border border-slate-700 hover:border-brand-500 hover:bg-brand-500/10 transition text-xs"><span class="font-semibold text-slate-200">C · Cleanest</span><span class="text-[10px] text-slate-500">calm/slow</span></button>
+              </div>
+            </div>
+            <div><div class="flex justify-between text-xs text-slate-400 mb-1"><label for="cfg">CFG weight</label><span id="cfgVal">0.30</span></div><input id="cfg" type="range" min="0" max="1" step="0.05" value="0.30" class="w-full accent-brand-500" /></div>
+            <div><div class="flex justify-between text-xs text-slate-400 mb-1"><label for="temp">Temperature</label><span id="tempVal">0.70</span></div><input id="temp" type="range" min="0.05" max="1.2" step="0.05" value="0.70" class="w-full accent-brand-500" /></div>
+            <div><div class="flex justify-between text-xs text-slate-400 mb-1"><label for="exag">Exaggeration</label><span id="exagVal">0.50</span></div><input id="exag" type="range" min="0.25" max="1" step="0.05" value="0.50" class="w-full accent-brand-500" /></div>
+            <button id="resetTuning" type="button" class="text-xs text-brand-500 hover:text-brand-600">↺ Reset to preset A</button>
+          </div>
+        </details>
+
+        <button id="generateBtn" class="w-full mt-5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 rounded-xl transition flex items-center justify-center gap-2">
+          <span id="btnSpinner" class="spinner hidden"></span><span id="btnLabel">Generate Audio</span>
+        </button>
+
+        <div id="progressWrap" class="hidden mt-4">
+          <div class="flex justify-between text-xs text-slate-400 mb-1"><span id="progressMsg">Starting…</span><span id="progressPct"></span></div>
+          <div class="w-full h-2 bg-black/40 rounded-full overflow-hidden"><div id="progressBar" class="h-full bg-gradient-to-r from-brand-500 to-fuchsia-500 transition-all" style="width:0%"></div></div>
+        </div>
+        <div id="error" class="hidden mt-3 text-sm text-red-300 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2"></div>
+      </section>
+
+      <section class="glass rounded-2xl p-6">
+        <h2 class="text-sm font-semibold text-slate-300 mb-4 uppercase tracking-wider">Output</h2>
+        <div id="outputEmpty" class="text-center text-slate-500 text-sm py-10 border border-dashed border-slate-700 rounded-xl">Your generated audio will appear here.</div>
+        <div id="outputCard" class="hidden bg-black/30 border border-slate-700 rounded-xl p-4">
+          <audio id="player" class="w-full" controls></audio>
+          <a id="downloadBtn" class="block text-center mt-3 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium py-2 rounded-lg transition" download>⬇ Download WAV</a>
+        </div>
+        <h2 class="text-sm font-semibold text-slate-300 mt-7 mb-3 uppercase tracking-wider">Recent generations</h2>
+        <ul id="historyList" class="space-y-2 text-sm"><li class="text-slate-500 text-sm">No clips yet.</li></ul>
+      </section>
+    </div>
+
+    <footer class="text-center text-xs text-slate-600 mt-8">Runs locally · Chatterbox TTS (MIT) · Flask</footer>
+  </div>
+
+  <script>
+    const MAX_CHARS = {{ max_chars }};
+    const $ = (id) => document.getElementById(id);
+
+    function setStatus(state, text) {
+      const colors = { ready: "bg-emerald-400", busy: "bg-amber-400 animate-pulse", error: "bg-red-400" };
+      $("statusDot").className = "w-2 h-2 rounded-full " + (colors[state] || colors.ready);
+      $("statusText").textContent = text;
+    }
+
+    // ---- tabs ----
+    function setTab(name) {
+      const onCreate = name === "create";
+      $("tabCreate").classList.toggle("hidden", !onCreate);
+      $("tabGen").classList.toggle("hidden", onCreate);
+      [["tabCreateBtn", onCreate], ["tabGenBtn", !onCreate]].forEach(([id, active]) => {
+        const b = $(id);
+        b.classList.toggle("bg-brand-600", active);
+        b.classList.toggle("border-brand-500", active);
+        b.classList.toggle("text-white", active);
+        b.classList.toggle("text-slate-400", !active);
+      });
+    }
+    $("tabCreateBtn").addEventListener("click", () => setTab("create"));
+    $("tabGenBtn").addEventListener("click", () => setTab("gen"));
+
+    // ===================== CREATE PROFILE =====================
+    const profAudio = $("profAudio");
+    function showProfFile(file) {
+      if (!file) return;
+      $("profFileInfo").classList.remove("hidden");
+      $("profFileName").textContent = `${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+      const p = $("profPreview"); p.src = URL.createObjectURL(file); p.classList.remove("hidden");
+    }
+    profAudio.addEventListener("change", () => showProfFile(profAudio.files[0]));
+    const dz = $("dropZone");
+    ["dragover", "dragenter"].forEach((e) => dz.addEventListener(e, (ev) => { ev.preventDefault(); dz.classList.add("border-brand-500"); }));
+    ["dragleave", "drop"].forEach((e) => dz.addEventListener(e, (ev) => { ev.preventDefault(); dz.classList.remove("border-brand-500"); }));
+    dz.addEventListener("drop", (ev) => { const f = ev.dataTransfer.files[0]; if (f) { profAudio.files = ev.dataTransfer.files; showProfFile(f); } });
+
+    function createMsg(msg, ok) {
+      const e = $("createMsg");
+      e.textContent = msg;
+      e.className = "mt-3 text-sm rounded-lg px-3 py-2 " + (ok ? "text-emerald-300 bg-emerald-500/10 border border-emerald-500/30" : "text-red-300 bg-red-500/10 border border-red-500/30");
+      e.classList.remove("hidden");
+    }
+
+    $("saveProfileBtn").addEventListener("click", async () => {
+      const name = $("profName").value.trim();
+      const file = profAudio.files[0];
+      if (!name) return createMsg("Please enter a profile name.", false);
+      if (!file) return createMsg("Please upload a reference audio clip.", false);
+      const fd = new FormData();
+      fd.append("name", name);
+      fd.append("audio", file);
+      fd.append("transcript", $("profTranscript").value.trim());
+      $("saveProfileBtn").disabled = true;
+      try {
+        const res = await fetch("/profile", { method: "POST", body: fd });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.error || "Save failed.");
+        createMsg(`Saved profile “${d.saved}”.`, true);
+        $("profName").value = ""; $("profTranscript").value = "";
+        $("profFileInfo").classList.add("hidden"); $("profPreview").classList.add("hidden"); profAudio.value = "";
+        await loadProfiles();
+        setStatus("ready", "Profile saved");
+      } catch (e) { createMsg(e.message, false); }
+      finally { $("saveProfileBtn").disabled = false; }
+    });
+
+    async function deleteProfile(name) {
+      if (!confirm(`Delete voice profile “${name}”?`)) return;
+      try { await fetch("/profile/" + encodeURIComponent(name), { method: "DELETE" }); await loadProfiles(); } catch (_) {}
+    }
+    window.deleteProfile = deleteProfile;
+
+    function renderProfileCards(items) {
+      const list = $("profileCards");
+      if (!items.length) { list.innerHTML = '<li class="text-slate-500">No profiles yet — create one on the left.</li>'; return; }
+      list.innerHTML = items.map((p) => `
+        <li class="bg-black/20 border border-slate-800 rounded-xl p-3">
+          <div class="flex items-center justify-between gap-2">
+            <div class="font-medium text-slate-200 truncate">🎤 ${p.name}</div>
+            <button onclick="deleteProfile('${p.name.replace(/'/g, "\\'")}')" class="shrink-0 text-xs text-slate-400 hover:text-red-400 border border-slate-700 hover:border-red-500 rounded-md px-2 py-1 transition">🗑 Delete</button>
+          </div>
+          <div class="text-xs text-slate-500 mt-1">${p.size_kb} KB${p.transcript ? " · has transcript" : ""}</div>
+          <audio class="w-full mt-2" controls preload="none" src="${p.audio_url}"></audio>
+          ${p.transcript ? `<div class="text-xs text-slate-400 mt-2 italic line-clamp-2">“${p.transcript}”</div>` : ""}
+        </li>`).join("");
+    }
+
+    // ===================== GENERATE =====================
+    const textArea = $("text");
+    textArea.addEventListener("input", () => ($("charCount").textContent = textArea.value.length));
+
+    function bindSlider(id, valId) { const el = $(id), out = $(valId); const s = () => (out.textContent = parseFloat(el.value).toFixed(2)); el.addEventListener("input", s); s(); }
+    bindSlider("cfg", "cfgVal"); bindSlider("temp", "tempVal"); bindSlider("exag", "exagVal");
+    const PRESETS = { A: { cfg: 0.30, temp: 0.70, exag: 0.50 }, B: { cfg: 0.20, temp: 0.60, exag: 0.45 }, C: { cfg: 0.15, temp: 0.50, exag: 0.40 } };
+    function applyPreset(name) {
+      const p = PRESETS[name]; if (!p) return;
+      $("cfg").value = p.cfg; $("cfgVal").textContent = p.cfg.toFixed(2);
+      $("temp").value = p.temp; $("tempVal").textContent = p.temp.toFixed(2);
+      $("exag").value = p.exag; $("exagVal").textContent = p.exag.toFixed(2);
+      document.querySelectorAll(".presetBtn").forEach((b) => { const a = b.dataset.preset === name; b.classList.toggle("border-brand-500", a); b.classList.toggle("bg-brand-500/10", a); });
+    }
+    document.querySelectorAll(".presetBtn").forEach((b) => b.addEventListener("click", () => applyPreset(b.dataset.preset)));
+    ["cfg", "temp", "exag"].forEach((id) => $(id).addEventListener("input", () => document.querySelectorAll(".presetBtn").forEach((b) => b.classList.remove("border-brand-500", "bg-brand-500/10"))));
+    $("resetTuning").addEventListener("click", () => applyPreset("A"));
+
+    function showError(msg) { const e = $("error"); e.textContent = msg; e.classList.remove("hidden"); setStatus("error", "Error"); }
+    function clearError() { $("error").classList.add("hidden"); }
+
+    function renderHistory(items) {
+      const list = $("historyList");
+      if (!items || !items.length) { list.innerHTML = '<li class="text-slate-500 text-sm">No clips yet.</li>'; return; }
+      list.innerHTML = items.map((h) => `
+        <li class="flex items-center justify-between bg-black/20 border border-slate-800 rounded-lg px-3 py-2">
+          <div class="min-w-0"><div class="truncate text-slate-300">${h.filename}</div><div class="text-xs text-slate-500">${h.created} · ${h.size_kb} KB</div></div>
+          <div class="flex items-center gap-1 ml-3 shrink-0">
+            <a href="${h.url}" download title="Download" class="text-brand-500 hover:text-brand-600 text-sm px-2 py-1">⬇</a>
+            <button onclick="deleteOutput('${h.filename.replace(/'/g, "\\'")}')" title="Delete" class="text-slate-400 hover:text-red-400 text-sm px-2 py-1">🗑</button>
+          </div>
+        </li>`).join("");
+    }
+    async function deleteOutput(filename) {
+      if (!confirm(`Delete “${filename}”?`)) return;
+      try {
+        const res = await fetch("/output/" + encodeURIComponent(filename), { method: "DELETE" });
+        const d = await res.json();
+        if (res.ok) renderHistory(d.history);
+      } catch (_) {}
+    }
+    window.deleteOutput = deleteOutput;
+    async function loadHistory() { try { renderHistory((await (await fetch("/history")).json()).history); } catch (_) {} }
+
+    // shared profile loader: fills generate dropdown + create-tab cards
+    async function loadProfiles() {
+      try {
+        const d = await (await fetch("/profiles")).json();
+        const sel = $("genProfile"), prev = sel.value;
+        sel.innerHTML = '<option value="">— Select a saved profile —</option>' +
+          d.profiles.map((p) => `<option value="${p.name}">🎤 ${p.name}</option>`).join("");
+        if (d.profiles.some((p) => p.name === prev)) sel.value = prev;
+        renderProfileCards(d.profiles);
+      } catch (_) {}
+    }
+
+    let pollTimer = null;
+    function setBusy(b) {
+      $("generateBtn").disabled = b;
+      $("btnSpinner").classList.toggle("hidden", !b);
+      $("btnLabel").textContent = b ? "Working…" : "Generate Audio";
+      $("progressWrap").classList.toggle("hidden", !b);
+    }
+    function updateProgress(job) {
+      const total = job.total || 1;
+      const pct = job.status === "loading" ? 5 : Math.round((job.done / total) * 100);
+      $("progressBar").style.width = Math.max(pct, 3) + "%";
+      $("progressMsg").textContent = job.message || "Working…";
+      $("progressPct").textContent = total > 1 ? `${job.done}/${total}` : "";
+    }
+    async function pollStatus(jobId) {
+      try {
+        const res = await fetch("/status/" + jobId);
+        const job = await res.json();
+        if (!res.ok) throw new Error(job.error || "Lost track of the job.");
+        updateProgress(job);
+        if (job.status === "done") {
+          clearInterval(pollTimer); setBusy(false);
+          $("outputEmpty").classList.add("hidden"); $("outputCard").classList.remove("hidden");
+          const player = $("player"); player.src = job.url + "?t=" + Date.now();
+          $("downloadBtn").href = job.url; $("downloadBtn").setAttribute("download", job.filename);
+          renderHistory(job.history); setStatus("ready", "Done"); player.play().catch(() => {});
+        } else if (job.status === "error") { clearInterval(pollTimer); setBusy(false); showError(job.error); }
+        else { setStatus("busy", job.message || "Generating…"); }
+      } catch (e) { clearInterval(pollTimer); setBusy(false); showError(e.message); }
+    }
+
+    $("generateBtn").addEventListener("click", async () => {
+      clearError();
+      const text = textArea.value.trim();
+      const profile = $("genProfile").value;
+      if (!profile) return showError("Choose a saved voice profile (create one in the first tab).");
+      if (!text) return showError("Paste or type a script to speak.");
+      const fd = new FormData();
+      fd.append("text", text); fd.append("profile", profile);
+      fd.append("cfg_weight", $("cfg").value); fd.append("temperature", $("temp").value); fd.append("exaggeration", $("exag").value);
+      setBusy(true); setStatus("busy", "Queued…"); updateProgress({ status: "loading", done: 0, total: 1, message: "Starting…" });
+      try {
+        const res = await fetch("/generate", { method: "POST", body: fd });
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.error || "Could not start generation.");
+        pollTimer = setInterval(() => pollStatus(d.job_id), 2000);
+        pollStatus(d.job_id);
+      } catch (e) { setBusy(false); showError(e.message); }
+    });
+
+    setTab("create");
+    loadProfiles();
+    loadHistory();
+  </script>
+</body>
+</html>

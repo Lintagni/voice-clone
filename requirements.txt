@@ -1,0 +1,24 @@
+# Local AI Voice Cloning Tool — Python dependencies
+# Python 3.10 or 3.11 recommended.
+
+flask==3.0.3
+
+# Chatterbox / torch require NumPy 1.x — NumPy 2.x breaks the torch build and
+# the server won't start. Keep this pin.
+numpy<2
+
+# Chatterbox TTS (Resemble AI, MIT). Pulls in torch, torchaudio, transformers,
+# etc. on its own, so we don't pin those separately.
+chatterbox-tts>=0.1.7
+
+scipy
+
+# Lets Python use the OS (Windows/macOS) certificate store so the one-time
+# HuggingFace model download works behind antivirus / corporate TLS interception
+# (avoids CERTIFICATE_VERIFY_FAILED). Harmless on networks that don't need it.
+truststore
+
+# NOTE: chatterbox installs a recent torch (2.6.x). If you ALREADY have an older
+# `torchvision` in this environment, it will be mismatched and crash transformers
+# with "operator torchvision::nms does not exist". chatterbox doesn't need vision,
+# so simply remove it:   pip uninstall torchvision -y

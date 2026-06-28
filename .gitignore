@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Virtual env / IDE
+.idea/
+.vscode/
+*.log
+
+# App runtime data (recreated automatically by app.py) — do NOT commit
+outputs/
+uploads/
+profiles/
+
+# Model cache (multi-GB, downloaded at runtime)
+.cache/
+*.safetensors
+*.pt
+*.ckpt
+
+# OS
+.DS_Store
+Thumbs.db
